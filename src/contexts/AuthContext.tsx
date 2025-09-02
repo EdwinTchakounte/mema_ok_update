@@ -1,10 +1,13 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { User } from '../types';
+import { supabase } from '../lib/supabase';
+// Assure-toi d’avoir configuré ton client Supabase
 
 interface AuthContextType {
   user: User | null;
-  login: (email: string, password: string, fullName?: string) => Promise<boolean>;
-  logout: () => void;
+  loginWithEmail: (email: string, password: string) => Promise<boolean>;
+  loginWithGoogle: () => Promise<boolean>;
+  logout: () => Promise<void>;
   isLoading: boolean;
 }
 
@@ -14,58 +17,85 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  // Vérifier si l'utilisateur est déjà connecté au montage
   useEffect(() => {
-    const savedUser = localStorage.getItem('churchApp_user');
-    if (savedUser) {
-      try {
-        const userData = JSON.parse(savedUser);
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user) {
+        const userData: User = {
+          id: session.user.id,
+          email: session.user.email ?? '',
+          full_name: session.user.user_metadata?.full_name || session.user.email?.split('@')[0] || '',
+          role: session.user.email?.includes('admin') ? 'admin' : 'user',
+          isAuthenticated: true,
+        };
         setUser(userData);
-      } catch (error) {
-        console.error('Error parsing saved user data:', error);
-        localStorage.removeItem('churchApp_user');
+      } else {
+        setUser(null);
       }
-    }
-    setIsLoading(false);
+      setIsLoading(false);
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
 
-  const login = async (email: string, password: string, fullName?: string): Promise<boolean> => {
+  // Connexion avec email/password
+  const loginWithEmail = async (email: string, password: string): Promise<boolean> => {
     setIsLoading(true);
-    
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    if (email && password.length >= 6) {
-      // Determine user role based on email
-      const role = email.includes('admin') ? 'admin' : 'user';
-      const displayName = fullName || 
-        (email === 'admin@eglise.com' ? 'Administrateur' : 
-         email === 'membre@eglise.com' ? 'Membre Fidèle' : 
-         email.split('@')[0]);
-      
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+
+    if (error) {
+      console.error('Erreur login email:', error.message);
+      setIsLoading(false);
+      return false;
+    }
+
+    if (data.user) {
       const userData: User = {
-        id: Math.random().toString(36).substr(2, 9),
-        email,
-        full_name: displayName,
-        role: role,
-        isAuthenticated: true
+        id: data.user.id,
+        email: data.user.email ?? '',
+        full_name: data.user.user_metadata?.full_name || data.user.email?.split('@')[0] || '',
+        role: data.user.email?.includes('admin') ? 'admin' : 'user',
+        isAuthenticated: true,
       };
-      
       setUser(userData);
-      localStorage.setItem('churchApp_user', JSON.stringify(userData));
       setIsLoading(false);
       return true;
     }
-    
+
     setIsLoading(false);
     return false;
   };
 
-  const logout = () => {
+  // Connexion avec Google OAuth
+  const loginWithGoogle = async (): Promise<boolean> => {
+    setIsLoading(true);
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+    });
+
+    if (error) {
+      console.error('Erreur login Google:', error.message);
+      setIsLoading(false);
+      return false;
+    }
+
+    // Redirection gérée automatiquement par Supabase
+    setIsLoading(false);
+    return true;
+  };
+
+  // Déconnexion
+  const logout = async () => {
+    await supabase.auth.signOut();
     setUser(null);
-    localStorage.removeItem('churchApp_user');
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, isLoading }}>
+    <AuthContext.Provider value={{ user, loginWithEmail, loginWithGoogle, logout, isLoading }}>
       {children}
     </AuthContext.Provider>
   );

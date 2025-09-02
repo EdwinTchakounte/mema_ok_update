@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Mail, Lock, User, Eye, EyeOff, ArrowRight } from 'lucide-react';
+import { Mail, Lock, User, Eye, EyeOff, ArrowRight, LogIn } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { ChurchSymbol } from '../common/ChurchSymbol';
+import { supabase } from '../../lib/supabase';
+
 
 interface LoginScreenProps {
   onSuccess: () => void;
@@ -16,35 +18,62 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onSuccess }) => {
   const [fullName, setFullName] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
-  
-  const { login, isLoading } = useAuth();
+
+  const { loginWithEmail, loginWithGoogle, isLoading } = useAuth();
   const { t } = useLanguage();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    
+
     if (!email || !password) {
       setError('Veuillez remplir tous les champs');
       return;
     }
-    
+
     if (!isLogin && !fullName) {
       setError('Veuillez fournir votre nom complet');
       return;
     }
 
-    const success = await login(email, password, fullName);
+    let success = false;
+
+    if (isLogin) {
+      success = await loginWithEmail(email, password);
+    } else {
+      // Inscription avec Supabase
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: { full_name: fullName },
+        },
+      });
+
+      if (error) {
+        setError(error.message);
+      } else if (data.user) {
+        success = true;
+      }
+    }
+
     if (success) {
       onSuccess();
-    } else {
-      setError('Identifiants invalides. Essayez: demo@church.com, mot de passe: password123');
+    } else if (isLogin) {
+      setError('Identifiants invalides');
+    }
+  };
+
+  const handleGoogleLogin = async () => {
+    setError('');
+    const success = await loginWithGoogle();
+    if (!success) {
+      setError('Échec de la connexion Google. Réessayez.');
     }
   };
 
   return (
     <div className="min-h-screen bg-white flex items-center justify-center p-4">
-
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -56,7 +85,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onSuccess }) => {
           <motion.div
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
-            transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
+            transition={{ delay: 0.2, type: 'spring', stiffness: 200 }}
             className="w-16 h-16 mx-auto mb-6 bg-gray-100 rounded-2xl flex items-center justify-center shadow-sm"
           >
             <ChurchSymbol type="cross" size="md" className="text-gray-600" />
@@ -67,16 +96,6 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onSuccess }) => {
           <p className="text-gray-600">
             {isLogin ? 'Connectez-vous à votre compte' : 'Créez votre compte spirituel'}
           </p>
-          
-          {/* Demo accounts info */}
-          <div className="mt-4 p-3 bg-gray-50 rounded-xl border border-gray-100">
-            <p className="text-gray-700 text-sm mb-2">Comptes de démonstration :</p>
-            <div className="space-y-1 text-xs text-gray-600">
-              <p>👤 <strong>admin@eglise.com</strong> / password123</p>
-              <p>👤 <strong>membre@eglise.com</strong> / password123</p>
-              <p>💡 Ou créez votre propre compte avec n'importe quel email</p>
-            </div>
-          </div>
         </div>
 
         {/* Form */}
@@ -119,7 +138,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onSuccess }) => {
             <div className="relative">
               <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
               <input
-                type={showPassword ? "text" : "password"}
+                type={showPassword ? 'text' : 'password'}
                 placeholder={t('password')}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
@@ -159,6 +178,18 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onSuccess }) => {
               )}
             </button>
           </form>
+
+          {/* Google login */}
+          <div className="mt-4">
+            <button
+              onClick={handleGoogleLogin}
+              disabled={isLoading}
+              className="w-full flex items-center justify-center gap-2 bg-red-500 text-white py-3 rounded-xl font-semibold hover:bg-red-600 transition-all duration-200 disabled:opacity-50"
+            >
+              <LogIn className="w-5 h-5" />
+              Continuer avec Google
+            </button>
+          </div>
 
           <div className="mt-6 text-center">
             <button

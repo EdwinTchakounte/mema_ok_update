@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
-import { Mail, Lock, User, Eye, EyeOff } from 'lucide-react';
+import { Mail, Lock, User, Eye, EyeOff, LogIn } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { ChurchSymbol } from '../common/ChurchSymbol';
+import { supabase } from '../../lib/supabase';
+
 
 interface LoginFormProps {
   onClose: () => void;
@@ -15,36 +17,66 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onClose }) => {
   const [name, setName] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
-  
-  const { login, isLoading } = useAuth();
+
+  const { loginWithEmail, loginWithGoogle, isLoading } = useAuth();
   const { t } = useLanguage();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    
+
     if (!email || !password) {
       setError('Please fill in all fields');
       return;
     }
-    
+
     if (!isLogin && !name) {
       setError('Please provide your name');
       return;
     }
 
-    const success = await login(email, password, name);
+    let success = false;
+
+    if (isLogin) {
+      // Connexion email/password
+      success = await loginWithEmail(email, password);
+    } else {
+      // Inscription email/password
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: { full_name: name },
+        },
+      });
+
+      if (error) {
+        setError(error.message);
+      } else if (data.user) {
+        success = true;
+      }
+    }
+
     if (success) {
       onClose();
-    } else {
-      setError('Invalid credentials. Try email: demo@church.com, password: password123');
+    } else if (isLogin) {
+      setError('Invalid email or password.');
+    }
+  };
+
+  const handleGoogleLogin = async () => {
+    setError('');
+    const success = await loginWithGoogle();
+    if (!success) {
+      setError('Google login failed. Please try again.');
     }
   };
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md transform transition-all">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md relative transform transition-all">
         <div className="p-8">
+          {/* Header */}
           <div className="text-center mb-8">
             <div className="flex justify-center mb-4">
               <div className="bg-gradient-to-br from-blue-600 to-purple-600 p-4 rounded-full">
@@ -59,6 +91,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onClose }) => {
             </p>
           </div>
 
+          {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-6">
             {!isLogin && (
               <div className="relative">
@@ -87,7 +120,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onClose }) => {
             <div className="relative">
               <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
               <input
-                type={showPassword ? "text" : "password"}
+                type={showPassword ? 'text' : 'password'}
                 placeholder={t('password')}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
@@ -117,6 +150,19 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onClose }) => {
             </button>
           </form>
 
+          {/* Google login */}
+          <div className="mt-4">
+            <button
+              onClick={handleGoogleLogin}
+              disabled={isLoading}
+              className="w-full flex items-center justify-center gap-2 bg-red-500 text-white py-3 rounded-xl font-semibold hover:bg-red-600 transition-all duration-200 disabled:opacity-50"
+            >
+              <LogIn className="w-5 h-5" />
+              Continue with Google
+            </button>
+          </div>
+
+          {/* Switch login/register */}
           <div className="mt-6 text-center">
             <button
               onClick={() => setIsLogin(!isLogin)}
@@ -126,6 +172,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onClose }) => {
             </button>
           </div>
 
+          {/* Close button */}
           <button
             onClick={onClose}
             className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors"
