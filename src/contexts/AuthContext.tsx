@@ -74,12 +74,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   // Connexion avec Google OAuth
   const loginWithGoogle = async (): Promise<boolean> => {
     setIsLoading(true);
-    
-    console.log("Redirect vers :", siteUrl);
+     const redirectTo = import.meta.env.VITE_SITE_URL || window.location.origin;
+  console.log("Redirect vers :", redirectTo);
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: siteUrl, // 🔑 dynamique (local ou vercel)
+        redirectTo, // 🔑 dynamique (local ou vercel)
       },
     });
 
