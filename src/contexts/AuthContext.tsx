@@ -1,6 +1,7 @@
 // src/context/AuthContext.tsx
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { createClient, Session, User as SupabaseUser } from '@supabase/supabase-js';
+import { supabase } from '../lib/supabase';
 
 // Types
 export interface User {
@@ -11,10 +12,10 @@ export interface User {
   isAuthenticated: boolean;
 }
 
-// Supabase client (prod)
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL!;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY!;
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+// // Supabase client (prod)
+// const supabaseUrl = import.meta.env.VITE_SUPABASE_URL!;
+// const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY!;
+// export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 interface AuthContextType {
   user: User | null;
