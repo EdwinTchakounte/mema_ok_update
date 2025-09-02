@@ -16,6 +16,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const siteUrl = import.meta.env.VITE_SITE_URL || 'http://localhost:3000'
 
   // Vérifier si l'utilisateur est déjà connecté au montage
   useEffect(() => {
@@ -73,8 +74,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   // Connexion avec Google OAuth
   const loginWithGoogle = async (): Promise<boolean> => {
     setIsLoading(true);
+    
+    console.log("Redirect vers :", siteUrl);
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
+      options: {
+        redirectTo: siteUrl, // 🔑 dynamique (local ou vercel)
+      },
     });
 
     if (error) {

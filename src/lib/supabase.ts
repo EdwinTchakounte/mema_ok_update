@@ -6,9 +6,10 @@ import { createClient } from '@supabase/supabase-js'
 // const supabaseServiceKey = import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY
 
 
-const supabaseUrl = "https://ukesjemdgeeneoigmrym.supabase.co"
-const supabaseAnonKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVrZXNqZW1kZ2VlbmVvaWdtcnltIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTU4ODQzMzAsImV4cCI6MjA3MTQ2MDMzMH0.03xW7Ifd_beBEbvYPS5H_ia16Y5c2W1i3nM9IrkUZkA"
-const supabaseServiceKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVrZXNqZW1kZ2VlbmVvaWdtcnltIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTU4ODQzMzAsImV4cCI6MjA3MTQ2MDMzMH0.03xW7Ifd_beBEbvYPS5H_ia16Y5c2W1i3nM9IrkUZkA"
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON
+const supabaseServiceKey = import.meta.env.VITE_SUPABASE_SERVICE_ROLE
+
 
 // Check if all required environment variables are present
 export const isSupabaseConfigured = !!(
