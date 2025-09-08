@@ -180,7 +180,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onSuccess }) => {
           </form>
 
           {/* Google login */}
-          <div className="mt-4">
+          {/* <div className="mt-4">
             <button
               onClick={handleGoogleLogin}
               disabled={isLoading}
@@ -189,7 +189,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onSuccess }) => {
               <LogIn className="w-5 h-5" />
               Continuer avec Google
             </button>
-          </div>
+          </div> */}
 
           <div className="mt-6 text-center">
             <button
